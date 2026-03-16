@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Paper Synthesizer</title>
+    <!-- Use Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(20, 26, 43, 0.7);
+            --primary-accent: #a855f7;
+            --secondary-accent: #3b82f6;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-glow: rgba(168, 85, 247, 0.3);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(168, 85, 247, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.15), transparent 25%);
+            color: var(--text-main);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px var(--border-glow);
+            transition: all 0.3s ease;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+            background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        /* Upload Section */
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 2rem;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary-accent);
+            background: rgba(168, 85, 247, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-block;
+            box-shadow: 0 10px 20px -10px var(--primary-accent);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -10px var(--primary-accent);
+        }
+
+        .btn:disabled {
+            background: #4b5563;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #file-name-display {
+            margin-top: 1rem;
+            color: var(--primary-accent);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* Results Section */
+        #results-container {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: linear-gradient(to bottom, var(--primary-accent), var(--secondary-accent));
+        }
+
+        .result-card h3 {
+            margin: 0 0 1rem 0;
+            color: var(--text-main);
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .result-card p {
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin: 0;
+            font-size: 1.05rem;
+        }
+
+        /* Loading Animation */
+        #loading {
+            display: none;
+            text-align: center;
+            margin: 3rem 0;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary-accent);
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 1rem auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Error Message */
+        #error-msg {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+            text-align: center;
+        }
+
+        /* Chatbot Section */
+        .chatbot-container {
+            margin-top: 3rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 2rem;
+            display: none; /* hidden until summary is ready */
+        }
+        
+        .chat-area {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 1.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chat-message {
+            max-width: 80%;
+            padding: 1rem 1.25rem;
+            border-radius: 16px;
+            line-height: 1.5;
+            font-size: 1.05rem;
+        }
+
+        .chat-message.user {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(59, 130, 246, 0.2));
+            color: var(--text-main);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+            border: 1px solid var(--border-glow);
+        }
+
+        .chat-message.bot {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-message.system {
+            background: transparent;
+            color: var(--text-muted);
+            align-self: center;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary-accent);
+        }
+
+        .suggestions-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .suggestion-btn {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: var(--secondary-accent);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .suggestion-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            gap: 4px;
+            padding: 0.5rem;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: typingbounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typingbounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>PaperSynthesizer</h1>
+            <p class="subtitle">Extract intelligent insights from research papers instantly.</p>
+        </header>
+
+        <form id="upload-form" enctype="multipart/form-data">
+            <div class="upload-area" id="drop-area">
+                <span class="upload-icon">📄</span>
+                <h2>Upload Research Paper</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Drag and drop your PDF here or click to browse</p>
+                <input type="file" id="pdf_file" name="pdf_file" accept=".pdf" />
+                <button type="button" class="btn" onclick="document.getElementById('pdf_file').click()">Select PDF</button>
+                <div id="file-name-display"></div>
+            </div>
+            
+            <div style="text-align: center;">
+                <button type="submit" class="btn" id="submit-btn" disabled style="width: 100%; max-width: 300px;">Generate Insights</button>
+            </div>
+        </form>
+
+        <div id="error-msg"></div>
+
+        <div id="loading">
+            <div class="spinner"></div>
+            <h3 style="margin-bottom: 0.5rem;">Synthesizing Knowledge...</h3>
+            <p style="color: var(--text-muted);">The AI is reading and extracting insights. This takes about 10-30 seconds.</p>
+        </div>
+
+        <div id="results-container">
+            <h2 style="text-align: center; margin-bottom: 2rem; color: var(--text-main);">AI Analysis Results</h2>
+            
+            <div class="result-card">
+                <h3><span>🧠</span> Abstract Summary</h3>
+                <p id="res-abstract">Loading...</p>
+            </div>
+
+            <div class="result-card">
+                <h3><span>🔍</span> Key Findings</h3>
+                <p id="res-findings">Loading...</p>
+            </div>
+
+            <div class="result-card">
+                <h3><span>👶</span> Simplified Explanation (ELI5)</h3>
+                <p id="res-simple">Loading...</p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 2rem;">
+                <button class="btn" onclick="resetForm()" style="background: rgba(255,255,255,0.1); box-shadow: none;">Analyze Another Paper</button>
+            </div>
+
+            <!-- Chatbot Section -->
+            <div class="chatbot-container" id="chatbot-container">
+                <h2 style="color: var(--text-main); margin-bottom: 0.5rem;">Ask Questions</h2>
+                <p style="color: var(--text-muted); margin-top: 0; margin-bottom: 1.5rem;">Chat with the AI to explore the paper deeper.</p>
+                
+                <div class="suggestions-container" id="suggestions-container">
+                    <!-- Suggestions will be populated here -->
+                </div>
+
+                <div class="chat-area" id="chat-history">
+                    <div class="chat-message system">Ask a question below or click a suggestion to begin.</div>
+                </div>
+
+                <form id="chat-form" class="chat-input-wrapper">
+                    <input type="text" id="chat-input" class="chat-input" placeholder="E.g., What is the main finding of this paper?" autocomplete="off">
+                    <button type="submit" class="btn" id="chat-send-btn">Ask</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('pdf_file');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const submitBtn = document.getElementById('submit-btn');
+        const uploadForm = document.getElementById('upload-form');
+        const dropArea = document.getElementById('drop-area');
+
+        // Handle file selection
+        fileInput.addEventListener('change', function(e) {
+            if (this.files && this.files.length > 0) {
+                const file = this.files[0];
+                if (file.type === 'application/pdf') {
+                    fileNameDisplay.textContent = `Selected: ${file.name}`;
+                    submitBtn.disabled = false;
+                    document.getElementById('error-msg').style.display = 'none';
+                } else {
+                    fileNameDisplay.textContent = 'Please choose a valid PDF file.';
+                    fileNameDisplay.style.color = '#ef4444';
+                    submitBtn.disabled = true;
+                }
+            }
+        });
+
+        // Handle drag and drop styling
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.remove('dragover'), false);
+        });
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                fileInput.files = files; // Assign files to input
+                // Trigger change event manually
+                const event = new Event('change');
+                fileInput.dispatchEvent(event);
+            }
+        }
+
+        // State Management
+        let paperContext = "";
+        
+        // Form Submission
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (fileInput.files.length === 0) return;
+
+            const formData = new FormData(uploadForm);
+            
+            // UI Updates for loading
+            uploadForm.style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results-container').style.display = 'none';
+            document.getElementById('error-msg').style.display = 'none';
+
+            try {
+                const response = await fetch('/summarize', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Show results
+                document.getElementById('res-abstract').textContent = data.abstract || "N/A";
+                document.getElementById('res-findings').textContent = data.findings || "N/A";
+                document.getElementById('res-simple').textContent = data.simple_explanation || "N/A";
+                
+                // Store context for chatbot
+                paperContext = data.context || "";
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('results-container').style.display = 'block';
+                document.getElementById('chatbot-container').style.display = 'block';
+                
+                // Fetch suggested questions
+                if (paperContext) {
+                    fetchSuggestions(paperContext);
+                }
+                
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                uploadForm.style.display = 'block';
+                const errorMsg = document.getElementById('error-msg');
+                errorMsg.textContent = `Error: ${error.message}`;
+                errorMsg.style.display = 'block';
+            }
+        });
+
+        function resetForm() {
+            fileInput.value = '';
+            fileNameDisplay.textContent = '';
+            submitBtn.disabled = true;
+            document.getElementById('results-container').style.display = 'none';
+            document.getElementById('chatbot-container').style.display = 'none';
+            uploadForm.style.display = 'block';
+            paperContext = "";
+            document.getElementById('chat-history').innerHTML = '<div class="chat-message system">Ask a question below or click a suggestion to begin.</div>';
+            document.getElementById('suggestions-container').innerHTML = '';
+        }
+
+        // --- Chatbot Logic ---
+
+        async function fetchSuggestions(context) {
+            const container = document.getElementById('suggestions-container');
+            container.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">Generating suggestions...</span>';
+            
+            try {
+                const response = await fetch('/suggest-questions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ context: context })
+                });
+                const data = await response.json();
+                
+                if (data.questions && data.questions.length > 0) {
+                    container.innerHTML = '';
+                    data.questions.forEach(q => {
+                        const btn = document.createElement('button');
+                        btn.className = 'suggestion-btn';
+                        btn.textContent = q;
+                        btn.onclick = () => {
+                            document.getElementById('chat-input').value = q;
+                            submitQuestion(q);
+                        };
+                        container.appendChild(btn);
+                    });
+                } else {
+                    container.innerHTML = '';
+                }
+            } catch (e) {
+                console.error("Failed to fetch suggestions", e);
+                container.innerHTML = '';
+            }
+        }
+
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatHistory = document.getElementById('chat-history');
+        const chatBtn = document.getElementById('chat-send-btn');
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const question = chatInput.value.trim();
+            if (question) {
+                submitQuestion(question);
+            }
+        });
+
+        async function submitQuestion(question) {
+            if (!paperContext) {
+                alert("Please upload and analyze a paper first.");
+                return;
+            }
+
+            // Add user message
+            appendMessage(question, 'user');
+            chatInput.value = '';
+            chatBtn.disabled = true;
+            
+            // Show typing indicator
+            const typingId = 'typing-' + Date.now();
+            const typingHtml = `
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>`;
+            appendMessage(typingHtml, 'bot', typingId, true);
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        question: question,
+                        context: paperContext
+                    })
+                });
+                const data = await response.json();
+                
+                // Remove typing indicator
+                const typingEl = document.getElementById(typingId);
+                if (typingEl) typingEl.remove();
+
+                if (data.error) {
+                    appendMessage(`Error: ${data.error}`, 'system');
+                } else {
+                    appendMessage(data.answer || "I couldn't find an answer.", 'bot');
+                }
+            } catch (error) {
+                // Remove typing indicator
+                const typingEl = document.getElementById(typingId);
+                if (typingEl) typingEl.remove();
+                appendMessage("Sorry, there was an error processing your question.", 'system');
+            }
+            
+            chatBtn.disabled = false;
+        }
+
+        function appendMessage(text, sender, id = null, isHtml = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-message ${sender}`;
+            if (id) msgDiv.id = id;
+            
+            if (isHtml) {
+                msgDiv.innerHTML = text;
+            } else {
+                msgDiv.textContent = text;
+            }
+            
+            chatHistory.appendChild(msgDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+    </script>
+</body>
+</html>

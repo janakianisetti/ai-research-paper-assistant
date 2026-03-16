@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+uploads/
+dummy.pdf
+brain/
+.agents/
+.agent/
+_agents/
+_agent/
