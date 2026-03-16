@@ -1,3 +1,4 @@
+
 # AI Research Paper Synthesizer 🧠
 
 An intelligent web application that uses advanced Machine Learning (Hugging Face Transformers) to read academic PDFs and extract key insights instantly.
@@ -68,3 +69,4 @@ If you add this project to your resume or portfolio, here are some ways to phras
 - **AI Research Synthesizer**: Developed a full-stack Python web application utilizing Flask and Hugging Face Transformers (`flan-t5`) to perform semantic analysis and summarization of complex academic PDFs.
 - **End-to-End NLP Integration**: Engineered a robust AI pipeline by extracting raw data via PyPDF2 and writing prompt-engineered instructions for a local machine-learning model, generating tailored explanations to the end-user.
 - **Modern UI/UX Development**: Designed and implemented a responsive, interactive frontend utilizing asynchronous JavaScript and a custom glass-morphism CSS framework for seamless document uploading and processing feedback.
+
